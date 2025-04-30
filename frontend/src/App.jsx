@@ -1,8 +1,11 @@
+import OrionMonitor from './OrionMonitor'
+import MQTTPublisher from './components/MQTTPublisher'
+
 function App() {
 
   return (
     <>
-     <h1>HELLO WORLD</h1>
+     <OrionMonitor/>
     </>
   )
 }
