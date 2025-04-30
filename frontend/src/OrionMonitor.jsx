@@ -78,14 +78,19 @@ const OrionMonitor = () => {
     sendCommandToOrion('b5', commands['white']);
   };
 
+  const resetNotification = () => {
+    sendCommandToOrion('message', 'Nenhuma notificação');
+  };
+
   return (
     <>
     <div className='bgPart'>
     </div>
     <div id='orionMain'>
-        <div>
-            <p>Última mensagem: </p>
+        <div id='orionNotification'>
+            <h2>Notificação: </h2>
             <p>{lastUpdate || "Nenhuma"}</p>
+            <button type="submit" id='orionButton' onClick={resetNotification}>Resetar Notificação</button>
         </div>
 
 

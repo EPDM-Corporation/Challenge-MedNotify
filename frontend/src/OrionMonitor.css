@@ -15,6 +15,33 @@
     justify-content: space-around; /* Espaço entre os elementos horizontalmente */
     height: 100vh;              /* Ocupa a altura total da tela */
   }
+
+#orionNotification{
+    background-color: white;
+    border-radius: 30px;
+    padding: 20px;
+    height: 500px;
+    width: 400px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#orionNotification h2 {
+    text-align: center;
+    font-size: 39px;
+    margin-bottom: 30px;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    font-weight: 600;
+}
+#orionNotification p{
+  font-size: 39px;
+  padding: 30px;
+  text-align: center;
+}
 .orionForms{
     display: flex;
     flex-direction: column;
@@ -31,6 +58,9 @@
     text-align: center;
     font-size: 39px;
     margin-bottom: 30px;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    font-weight: 600;
   }
 .orionInput{
     background-color: #f1f4f9;
@@ -53,6 +83,7 @@
     width: 150px;
     height: 30px;
     color: white;
+    margin: 30px;
 }
 .bgPart{
     width: 50vw;
