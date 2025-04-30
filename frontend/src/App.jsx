@@ -1,5 +1,5 @@
 import OrionMonitor from './OrionMonitor'
-import MQTTPublisher from './components/MQTTPublisher'
+import './App.css'
 
 function App() {
 

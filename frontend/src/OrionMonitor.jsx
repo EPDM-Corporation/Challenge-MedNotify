@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './OrionMonitor.css'
 
 const OrionMonitor = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -78,20 +79,37 @@ const OrionMonitor = () => {
   };
 
   return (
-    <div>
-      <h2>Monitoramento FIWARE Orion</h2>
-      <p>Última mensagem: {lastUpdate || "Nenhuma"}</p>
-
-      <form onSubmit={handleSubmit}>
-        <input type="text" name="red" value={commands.red} onChange={handleChange} placeholder="Comandos do Botão Vermelho" />
-        <input type="text" name="blue" value={commands.blue} onChange={handleChange} placeholder="Comandos do Botão Azul" />
-        <input type="text" name="green" value={commands.green} onChange={handleChange} placeholder="Comandos do Botão Verde" />
-        <input type="text" name="yellow" value={commands.yellow} onChange={handleChange} placeholder="Comandos do Botão Amarelo" />
-        <input type="text" name="white" value={commands.white} onChange={handleChange} placeholder="Comandos do Botão Branco" />
-        <button type="submit">Enviar Comandos</button>
-      </form>
-      <button type="submit" onClick={sendCommandToOrion}>Teste</button>
+    <>
+    <div className='bgPart'>
     </div>
+    <div id='orionMain'>
+        <div>
+            <p>Última mensagem: </p>
+            <p>{lastUpdate || "Nenhuma"}</p>
+        </div>
+
+
+            <form onSubmit={handleSubmit} className='orionForms'>
+                <div>
+                    <h2>Configuração dos botões</h2>
+                    <div>
+                        <input type="text" name="red" value={commands.red} onChange={handleChange} placeholder="Botão Vermelho" className='orionInput' />
+                        <input type="text" name="blue" value={commands.blue} onChange={handleChange} placeholder="Botão Azul" className='orionInput' />
+                    </div>
+                    <div>
+                        <input type="text" name="green" value={commands.green} onChange={handleChange} placeholder="Botão Verde"  className='orionInput'/>
+                        <input type="text" name="yellow" value={commands.yellow} onChange={handleChange} placeholder="Botão Amarelo"  className='orionInput'/>
+                    </div>
+                    <input type="text" name="white" value={commands.white} onChange={handleChange} placeholder="Botão Branco" className='orionInput'/>
+                </div>
+
+
+                <button type="submit" id='orionButton'>Enviar Comandos</button>
+            </form>
+
+
+    </div>
+    </>
   );
 };
 

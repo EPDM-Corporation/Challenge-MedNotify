@@ -2,242 +2,215 @@
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // Configurações do LCD
-LiquidCrystal_I2C lcd(0x27, 16, 2); // Endereço I2C do LCD, largura 16 e altura 2
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Configurações - variáveis editáveis
-const char* default_SSID = "Wokwi-GUEST";
-const char* default_PASSWORD = "";
-const char* default_BROKER_MQTT = "52.237.23.203";
-const int default_BROKER_PORT = 1883;
-const char* default_message = "/TEF/mednotify001/attrs";
-const char* default_button1 = "/TEF/mednotify001/cmd/b1"; // Tópico MQTT de Botão 1
-const char* default_button2 = "/TEF/mednotify001/cmd/b2"; // Tópico MQTT de Botão 1
-const char* default_button3 = "/TEF/mednotify001/cmd/b3"; // Tópico MQTT de Botão 1
-const char* default_button4 = "/TEF/mednotify001/cmd/b4"; // Tópico MQTT de Botão 1
-const char* default_button5 = "/TEF/mednotify001/cmd/b5"; // Tópico MQTT de Botão 1
-const char* default_ID_MQTT = "mednotify001_teste";
+// Configurações WiFi
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
 
-// Variáveis de rede e MQTT
-char* SSID = const_cast<char*>(default_SSID);
-char* PASSWORD = const_cast<char*>(default_PASSWORD);
-char* BROKER_MQTT = const_cast<char*>(default_BROKER_MQTT);
-int BROKER_PORT = default_BROKER_PORT;
-char* MESSAGE_PUBLISH = const_cast<char*>(default_message);
-char* BUTTON1_SUBSCRIBE = const_cast<char*>(default_button1);
-char* BUTTON2_SUBSCRIBE = const_cast<char*>(default_button2);
-char* BUTTON3_SUBSCRIBE = const_cast<char*>(default_button3);
-char* BUTTON4_SUBSCRIBE = const_cast<char*>(default_button4);
-char* BUTTON5_SUBSCRIBE = const_cast<char*>(default_button5);
-char* ID_MQTT = const_cast<char*>(default_ID_MQTT);
+// Configurações MQTT
+const char* mqtt_broker = "52.237.23.203";
+const int mqtt_port = 1883;
+const char* mqtt_topic_pub = "/TEF/mednotify001/attrs";
+const char* mqtt_topic_sub = "/TEF/mednotify001/cmd/#";
+const char* mqtt_client_id = "mednotify001_teste";
+
+// Configurações FIWARE Orion
+const String ORION_SERVER = "http://52.237.23.203:1026";
+const String ENTITY_ID = "urn:ngsi-ld:mednotify:001";
+const String FIWARE_SERVICE = "smart";
+const String FIWARE_SERVICEPATH = "/";
 
 // Pinos dos botões
-const int button1 = 13;  // Pino do botão 1
-const int button2 = 12; // Pino do botão 2
-const int button3 = 14;  // Pino do botão 1
-const int button4 = 27; // Pino do botão 2
-const int button5 = 26;  // Pino do botão 1
+const int button1 = 13;
+const int button2 = 12;
+const int button3 = 14;
+const int button4 = 27;
+const int button5 = 26;
 
-String button1_message = "emergencia";
-String button2_message = "banana";
-String button3_message = "emergencia";
-String button4_message = "cozinha";
-String button5_message = "agua";
+// Variáveis de estado
+String button_messages[5] = {"", "", "", "", ""}; // Inicializa vazio
 
-
-
-const int D4 = 2; // Pino do LED onboard
-
-// Variáveis para controle
-String message = "Button Pressed"; // Mensagem a ser publicada quando o botão for pressionado
 WiFiClient espClient;
-PubSubClient MQTT(espClient);
+PubSubClient mqttClient(espClient);
 
+void setup() {
+  Serial.begin(115200);
+  
+  // Inicializa LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.print("Conectando WiFi...");
+  
+  // Conecta WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  lcd.clear();
+  lcd.print("Conectado!");
+  delay(2000);
+  
+  // Configura MQTT
+  mqttClient.setServer(mqtt_broker, mqtt_port);
+  mqttClient.setCallback(mqttCallback);
+  
+  // Configura botões
+  pinMode(button1, INPUT_PULLUP);
+  pinMode(button2, INPUT_PULLUP);
+  pinMode(button3, INPUT_PULLUP);
+  pinMode(button4, INPUT_PULLUP);
+  pinMode(button5, INPUT_PULLUP);
 
-void callback(char* topic, byte* payload, unsigned int length) {
+  // Verifica atributos inicialmente
+  checkOrionAttributes();
+}
+
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String msg;
   for (int i = 0; i < length; i++) {
     msg += (char)payload[i];
   }
 
-  Serial.print("Mensagem recebida no tópico: ");
-  Serial.println(topic);
-  Serial.print("Conteúdo: ");
+  Serial.print("MQTT - Mensagem recebida: ");
+  Serial.print(topic);
+  Serial.print(" - ");
   Serial.println(msg);
 
-    lcd.clear();
-    lcd.print(msg);
-  if (String(topic).endsWith("b1")) {
-    button1_message = msg;
-  } else if (String(topic).endsWith("b2")) {
-    button2_message = msg;
-  }else if (String(topic).endsWith("b3")) {
-    button3_message = msg;
-  }else if (String(topic).endsWith("b4")) {
-    button4_message = msg;
-  }else{
-    button2_message = msg;
-    lcd.clear();
-    lcd.print("CMD5: " + msg);
-    }
-}
-// Função para inicialização do Wi-Fi
-void initWiFi() {
-    delay(10);
-    Serial.println("Conectando ao Wi-Fi...");
-    WiFi.begin(default_SSID, default_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-        Serial.print(".");
-    }
-    Serial.println("\nConectado ao Wi-Fi!");
-}
-
-// Função para inicializar o MQTT
-void initMQTT() {
-    MQTT.setServer(BROKER_MQTT, BROKER_PORT);
+  // Atualiza o LCD com a mensagem recebida
+  lcd.clear();
+  lcd.print(msg);
 }
 
 void reconnectMQTT() {
-    while (!MQTT.connected()) {
-        Serial.print("* Tentando se conectar ao Broker MQTT: ");
-        Serial.println(BROKER_MQTT);
-        if (MQTT.connect(ID_MQTT)) {
-            Serial.println("Conectado com sucesso ao broker MQTT!");
-            MQTT.subscribe(BUTTON1_SUBSCRIBE);
-            MQTT.subscribe(BUTTON2_SUBSCRIBE);
-            MQTT.subscribe(BUTTON3_SUBSCRIBE);
-            MQTT.subscribe(BUTTON4_SUBSCRIBE);
-            MQTT.subscribe(BUTTON5_SUBSCRIBE);
-        } else {
-            Serial.println("Falha ao reconectar no broker.");
-            Serial.println("Haverá nova tentativa de conexão em 2s");
-            delay(2000);
-        }
+  while (!mqttClient.connected()) {
+    Serial.print("Conectando ao MQTT...");
+    if (mqttClient.connect(mqtt_client_id)) {
+      Serial.println("Conectado!");
+      mqttClient.subscribe(mqtt_topic_sub);
+    } else {
+      Serial.print("Falha, rc=");
+      Serial.print(mqttClient.state());
+      Serial.println(" Tentando novamente em 5s");
+      delay(5000);
     }
-}
-
-// Função para exibir mensagens no LCD
-void displayLCDMessage(String msg) {
-    lcd.clear();
-    lcd.print(msg); // Exibe a mensagem no LCD
-}
-
-// Função para publicar a mensagem no MQTT
-void pressButton(int BUTTON_TYPE) {
-    String payload;
-    switch(BUTTON_TYPE){
-      case 1:
-        payload = "m|" + button1_message;  // Formato UltraLight
-        MQTT.publish(MESSAGE_PUBLISH, payload.c_str());
-        lcd.clear();
-        lcd.print(button1_message);
-        delay(500);
-        break;
-      case 2:
-        payload = "m|" + button2_message;
-        MQTT.publish(MESSAGE_PUBLISH, payload.c_str());
-        lcd.clear();
-        lcd.print(button2_message);
-        delay(500);
-        break;
-      case 3:
-        payload = "m|" + button3_message;
-        MQTT.publish(MESSAGE_PUBLISH, payload.c_str());
-        lcd.clear();
-        lcd.print(button3_message);
-        delay(500);
-        break;
-      case 4:
-        payload = "m|" + button4_message;
-        MQTT.publish(MESSAGE_PUBLISH, payload.c_str());
-        lcd.clear();
-        lcd.print(button4_message);
-        delay(500);
-        break;
-      case 5:
-        payload = "m|" + button5_message;  // Mantido consistente com outros botões
-        MQTT.publish(MESSAGE_PUBLISH, payload.c_str());
-        lcd.clear();
-        lcd.print(button5_message);
-        delay(500);
-        break;   
-    }
-    Serial.print("Mensagem enviada: ");
-    Serial.println(payload);
-}
-
-// Função para verificar os botões
-void handleButtons() {
-    if (digitalRead(button1) == LOW) { // Se o botão 1 for pressionado
-      pressButton(1); // Publica a mensagem no MQTT
-      delay(500); // Delay para evitar debounce
   }
-    if (digitalRead(button2) == LOW) { // Se o botão de depuração for pressionado
-      pressButton(2); // Publica a mensagem no MQTT
-      delay(500); // Delay para evitar debounce
-    }
-      if (digitalRead(button3) == LOW) { // Se o botão de depuração for pressionado
-      pressButton(3); // Publica a mensagem no MQTT
-      delay(500); // Delay para evitar debounce
-    }
-      if (digitalRead(button4) == LOW) { // Se o botão de depuração for pressionado
-      pressButton(4); // Publica a mensagem no MQTT
-      delay(500); // Delay para evitar debounce
-    }
-      if (digitalRead(button5) == LOW) { // Se o botão de depuração for pressionado
-      pressButton(5); // Publica a mensagem no MQTT
-      delay(500); // Delay para evitar debounce
-    }
 }
 
-// Função para verificar conexões Wi-Fi e MQTT
-void VerificaConexoesWiFIEMQTT() {
-    if (!MQTT.connected()) {
-        reconnectMQTT();
-    }
-    if (WiFi.status() != WL_CONNECTED) {
-        reconectWiFi();
-    }
-}
+String getOrionAttribute(String attribute) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi desconectado");
+    return "";
+  }
 
-void reconectWiFi() {
-    if (WiFi.status() == WL_CONNECTED)
-        return;
-    WiFi.begin(SSID, PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-        Serial.print(".");
-    }
-    Serial.println("\nConectado ao Wi-Fi!");
-}
-
-void setup() {
-    Serial.begin(115200);
-
-    // Inicializa o LCD
-    initWiFi();
-    initMQTT();
-    lcd.init();           // Inicializa o LCD
-    lcd.backlight();      // Liga a luz de fundo
-    lcd.clear();          // Limpa o display
-    MQTT.setCallback(callback);
-    pinMode(button1, INPUT_PULLUP); // Configura o pino do botão 1
-    pinMode(button2, INPUT_PULLUP); // Configura o pino do botão de depuração
-    pinMode(button3, INPUT_PULLUP); // Configura o pino do botão 1
-    pinMode(button4, INPUT_PULLUP); // Configura o pino do botão de depuração
-    pinMode(button5, INPUT_PULLUP); // Configura o pino do botão 1
+  HTTPClient http;
+  String url = ORION_SERVER + "/v2/entities/" + ENTITY_ID + "/attrs/" + attribute + "/value";
+  
+  http.begin(url);
+  http.addHeader("Fiware-Service", FIWARE_SERVICE);
+  http.addHeader("Fiware-ServicePath", FIWARE_SERVICEPATH);
+  
+  int httpCode = http.GET();
+  String payload = "";
+  
+  if (httpCode == HTTP_CODE_OK) {
+    payload = http.getString();
+    payload.trim();
     
+    // Remove aspas se existirem
+    if (payload.startsWith("\"") && payload.endsWith("\"")) {
+      payload = payload.substring(1, payload.length()-1);
+    }
+    
+    Serial.print("HTTP - " + attribute + " obtido: ");
+    Serial.println(payload);
+  } else {
+    Serial.printf("HTTP - Falha ao obter %s. Código: %d\n", attribute.c_str(), httpCode);
+    Serial.printf("Resposta: %s\n", http.getString().c_str());
+  }
+  
+  http.end();
+  return payload;
+}
 
-    // Mensagem inicial no LCD
-    lcd.print("Sistema Pronto!");
-    delay(2000);
+void checkOrionAttributes() {
+  bool updated = false;
+  
+  for (int i = 0; i < 5; i++) {
+    String attribute = "b" + String(i+1);
+    String new_value = getOrionAttribute(attribute);
+    
+    if (new_value != "" && new_value != button_messages[i]) {
+      button_messages[i] = new_value;
+      updated = true;
+      
+      Serial.printf("%s atualizado para: %s\n", attribute.c_str(), new_value.c_str());
+    }
+  }
+  
+  if (updated) {
     lcd.clear();
+    lcd.print("Atributos atualizados");
+    delay(1000);
+  }
+}
+
+void publishMQTT(int button_index) {
+  if (!mqttClient.connected()) {
+    reconnectMQTT();
+  }
+  
+  String payload = "m|" + button_messages[button_index];
+  mqttClient.publish(mqtt_topic_pub, payload.c_str());
+  
+  lcd.clear();
+  lcd.print("Enviado b" + String(button_index+1) + ":");
+  lcd.setCursor(0, 1);
+  lcd.print(button_messages[button_index]);
+  delay(500);
 }
 
 void loop() {
-    VerificaConexoesWiFIEMQTT(); // Verifica as conexões
-    handleButtons(); // Verifica os botões
-    MQTT.loop();     // Mantém a conexão MQTT ativa
+  static unsigned long lastCheck = 0;
+  
+  if (!mqttClient.connected()) {
+    reconnectMQTT();
+  }
+  mqttClient.loop();
+
+  // Verifica atributos no Orion a cada 10 segundos
+  if (millis() - lastCheck >= 10000) {
+    checkOrionAttributes();
+    lastCheck = millis();
+  }
+
+  // Verifica botões
+  if (digitalRead(button1) == LOW) {
+    publishMQTT(0);
+    delay(500);
+  }
+  if (digitalRead(button2) == LOW) {
+    publishMQTT(1);
+    delay(500);
+  }
+  if (digitalRead(button3) == LOW) {
+    publishMQTT(2);
+    delay(500);
+  }
+  if (digitalRead(button4) == LOW) {
+    publishMQTT(3);
+    delay(500);
+  }
+  if (digitalRead(button5) == LOW) {
+    publishMQTT(4);
+    delay(500);
+  }
+  
+  delay(100);
 }
