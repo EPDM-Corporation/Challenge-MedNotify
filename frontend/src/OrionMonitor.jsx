@@ -4,7 +4,7 @@ import './OrionMonitor.css'
 
 const OrionMonitor = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
-
+    //Hashmap de mensagens dos botões
   const [commands, setCommands] = useState({
     red: '',
     blue: '',
@@ -14,6 +14,7 @@ const OrionMonitor = () => {
   });
 
   useEffect(() => {
+    // Verifica a notificação a cada 3 segundos
     const interval = setInterval(() => {
       axios.get('http://52.237.23.203:1026/v2/entities/urn:ngsi-ld:mednotify:001?options=keyValues', {
         headers: {
@@ -37,17 +38,18 @@ const OrionMonitor = () => {
     return () => clearInterval(interval);
   }, [lastUpdate]);
 
+  // Muda a variável commands
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCommands(prev => ({ ...prev, [name]: value }));
   };
-
+  // Manda o comando para o Orion
   const sendCommandToOrion = async (attribute, value) => {
     try {
-      await axios.patch( // Note que usei PATCH em vez de POST
+      await axios.patch( 
         'http://52.237.23.203:1026/v2/entities/urn:ngsi-ld:mednotify:001/attrs',
         {
-          [attribute]: {  // Notação de colchetes para usar o parâmetro como chave
+          [attribute]: {  
             type: "Text",
             value: value
           }
@@ -67,7 +69,7 @@ const OrionMonitor = () => {
     }
   };
   
-  
+  // Submit do forms para mandar os comandos até os botões
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Comandos enviados:", commands['red']);
@@ -77,7 +79,7 @@ const OrionMonitor = () => {
     sendCommandToOrion('b4', commands['yellow']);
     sendCommandToOrion('b5', commands['white']);
   };
-
+  // Reseta o message do orion
   const resetNotification = () => {
     sendCommandToOrion('message', 'Nenhuma notificação');
   };

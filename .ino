@@ -38,39 +38,7 @@ String button_messages[5] = {"", "", "", "", ""}; // Inicializa vazio
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-void setup() {
-  Serial.begin(115200);
-  
-  // Inicializa LCD
-  lcd.init();
-  lcd.backlight();
-  lcd.print("Conectando WiFi...");
-  
-  // Conecta WiFi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  
-  lcd.clear();
-  lcd.print("Conectado!");
-  delay(2000);
-  
-  // Configura MQTT
-  mqttClient.setServer(mqtt_broker, mqtt_port);
-  mqttClient.setCallback(mqttCallback);
-  
-  // Configura botões
-  pinMode(button1, INPUT_PULLUP);
-  pinMode(button2, INPUT_PULLUP);
-  pinMode(button3, INPUT_PULLUP);
-  pinMode(button4, INPUT_PULLUP);
-  pinMode(button5, INPUT_PULLUP);
 
-  // Verifica atributos inicialmente
-  checkOrionAttributes();
-}
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String msg;
@@ -103,6 +71,7 @@ void reconnectMQTT() {
   }
 }
 
+// Pega os atributos do Orion usando a biblioteca HTTP
 String getOrionAttribute(String attribute) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi desconectado");
@@ -161,6 +130,7 @@ void checkOrionAttributes() {
   }
 }
 
+// Envia a menssagem para message para o Orion
 void publishMQTT(int button_index) {
   if (!mqttClient.connected()) {
     reconnectMQTT();
@@ -170,11 +140,45 @@ void publishMQTT(int button_index) {
   mqttClient.publish(mqtt_topic_pub, payload.c_str());
   
   lcd.clear();
-  lcd.print("Enviado b" + String(button_index+1) + ":");
+  lcd.print("Enviado:");
   lcd.setCursor(0, 1);
   lcd.print(button_messages[button_index]);
   delay(500);
 }
+
+void setup() {
+    Serial.begin(115200);
+    
+    // Inicializa LCD
+    lcd.init();
+    lcd.backlight();
+    lcd.print("Conectando WiFi...");
+    
+    // Conecta WiFi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+    
+    lcd.clear();
+    lcd.print("Conectado!");
+    delay(2000);
+    
+    // Configura MQTT
+    mqttClient.setServer(mqtt_broker, mqtt_port);
+    mqttClient.setCallback(mqttCallback);
+    
+    // Configura botões
+    pinMode(button1, INPUT_PULLUP);
+    pinMode(button2, INPUT_PULLUP);
+    pinMode(button3, INPUT_PULLUP);
+    pinMode(button4, INPUT_PULLUP);
+    pinMode(button5, INPUT_PULLUP);
+  
+    // Verifica atributos inicialmente
+    checkOrionAttributes();
+  }
 
 void loop() {
   static unsigned long lastCheck = 0;
