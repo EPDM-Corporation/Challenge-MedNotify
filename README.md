@@ -19,6 +19,8 @@ Esse projeto teve como objetivo resolver um dos problemas do Hospital Sabará, q
 ![Diagrama](https://github.com/user-attachments/assets/dc0a6a18-eec1-461d-a6d1-7318b6cec1dd)
 ## Link do Video
 https://youtu.be/mBTORt9yFyg
+## Link do Vídeo Hands-On
+https://youtu.be/wVb0vwhzqZI
 ## Link do Projeto no Wokwi
 https://wokwi.com/projects/429073740124847105
 ## Autores
